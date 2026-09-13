@@ -65,6 +65,7 @@ Detailed Authentication Information:
 1. Se detectó un ataque de fuerza bruta al usuario principal de la máquina virtual al servicio RDP.
 2. Comprobé que el atacante no había intentado atacar ningún otro servicio mirando `data.win.eventdata.ipAddress:10.0.2.2`
 3. El valor `data.win.eventdata.subStatus:0xc000006a` implica que el usuario fue correcto pero la contraseña no.
+4. No se produjo ningún acceso exitoso `data.win.system.eventID:4624`
 
 ## 4. Análisis
 Puesto que es un ataque específico hacia nuestro sistema al usar un usuario válido, otorgo una severidad media, siendo necesario realizar una respuesta para mitigar un posible acceso futuro. 
@@ -72,9 +73,11 @@ Puesto que es un ataque específico hacia nuestro sistema al usar un usuario vá
 Tras aplicar las acciones de respuesta permancería monitorizando por si se repitiesen futuros ataques.
 
 ## 5. Acciones de respuesta
+- Escalar a N2 al tratarse de un ataque dirigido.
 - Establecer políticas de contraseñas robustas.
 - Eliminar el acceso a RDP a través de Internet y obligar al uso de una VPN.
-- Establecer una política de _lockout_ a partir de una serie de intentos fallidos.
+- Recomendado establecer una política de _lockout_ a partir de una serie de intentos fallidos. Sin embargo el atacante podría realizar un ataque de denegación de servicio, impidiendo al usuario legítimo acceder.
+- Cambiar el nombre de usuario.
 - Obligar al uso de MFA para el acceso a RDP.
 
 ## 6. Recomendaciones de mejora (detection engineering)
