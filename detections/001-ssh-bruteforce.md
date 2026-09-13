@@ -3,10 +3,10 @@
 ## Resumen
 - **Fecha/hora:** 2026-09-13 08:54 (UTC+2)
 - **Regla(s) que saltó:** sshd: brute force trying to get access to the system. Non existent user. (5712)
-- **Técnica MITRE ATT&CK:** T1110 - Credential Access
+- **Técnica MITRE ATT&CK:** T1110 - Brute Force
 - **Endpoint afectado:** Wazuh Manager
 - **Severidad:** Baja
-- **Veredicto:** Falso positivo
+- **Veredicto:** Benigno
 
 ## 1. Ejecución del ataque
 Este ataque fue realizado por una serie de bots que realizan ataques de fuerza bruta a los puertos abiertos. En concreto al puerto SSH del Wazuh Manager (puesto que este está conectado a internet)
