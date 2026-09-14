@@ -50,7 +50,7 @@ Mediante el uso de un binario como `rdrleakdiag.exe` el atacante ha procedido al
 - Solicitud de un análisis forense a la máquina
 
 ## 6. Recomendaciones de mejora (detection engineering)
-Crearía una regla para detectar ejecuciones de powershell como administrador y catalogarlas como nivel 15 (máximo) puesto que en la mayoría de casos suponen un grave riesgo, además vuelve a entrar en juego el principio _Least privilege_ para reducir las superficies de ataque.
+Crearía una regla para detectar ejecuciones de powershell como administrador y catalogarlas como nivel 15 (máximo) puesto que en la mayoría de casos suponen un grave riesgo, además vuelve a entrar en juego el principio _Least privilege_ para reducir las superficies de ataque. Y activaría Credential Guard para virtualizar lsass e impedir dumps.
 
 ## 7. Lecciones aprendidas
 Aprendí lo sencillo que es para un atacante con permisos de administrador realizar el dump de un proceso tan crítico como es LSASS.
