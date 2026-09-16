@@ -1,39 +1,39 @@
-# Incidente 001 sshd brute force
+# Incident 001 sshd brute force
 
-## Resumen
-- **Fecha/hora:** 2026-09-13 08:54 (UTC+2)
-- **Regla(s) que saltó:** sshd: brute force trying to get access to the system. Non existent user. (5712)
-- **Técnica MITRE ATT&CK:** T1110 - Brute Force
-- **Endpoint afectado:** Wazuh Manager
-- **Severidad:** Baja
-- **Veredicto:** Benigno
+## Summary
+- **Date/time:** 2026-09-13 08:54 (UTC+2)
+- **Triggered rule(s):** sshd: brute force trying to get access to the system. Non existent user. (5712)
+- **MITRE ATT&CK technique:** T1110 - Brute Force
+- **Affected endpoint:** Wazuh Manager
+- **Severity:** Low
+- **Verdict:** Benign
 
-## 1. Ejecución del ataque
-Este ataque fue realizado por una serie de bots que realizan ataques de fuerza bruta a los puertos abiertos. En concreto al puerto SSH del Wazuh Manager (puesto que este está conectado a internet)
+## 1. Attack execution
+This attack was carried out by a series of bots that perform brute-force attacks against open ports. Specifically against the SSH port of the Wazuh Manager (since it is connected to the internet)
 
-## 2. Evidencia recolectada
-- Captura del evento en Wazuh ![Wazuh log](../images/001-ssh-bruteforce-wazuh.png)
-- IP origen: 35.187.231.181
-- Usuario/Proceso: guest -> sshd
-- Línea de comando completa: `Sep 13 06:54:52 wazuh sshd[75565]: Invalid user guest from 35.187.231.181 port 57492`
-- Eventos correlacionados: rule.id:5710 y rule.id:5712 y data.srcip:35.187.231.181
+## 2. Evidence collected
+- Screenshot of the event in Wazuh ![Wazuh log](../images/001-ssh-bruteforce-wazuh.png)
+- Source IP: 35.187.231.181
+- User/Process: guest -> sshd
+- Full command line: `Sep 13 06:54:52 wazuh sshd[75565]: Invalid user guest from 35.187.231.181 port 57492`
+- Correlated events: rule.id:5710 and rule.id:5712 and data.srcip:35.187.231.181
 
-## 3. Investigación (paso a paso)
-1. Revisando los logs me encontré que el servidor de Wazuh había sido víctima de un ataque de fuerza bruta externo, común en servicios con puertos abiertos a internet.
-2. Posteriormente me puse a investigar que más había hecho el atacante con `data.srcip:35.187.231.181`
-3. Comprobé que solo había realizado ataques de fuerza bruta al servicio sshd, y además ninguno era del usuario principal `data.srcuser:ubuntu`. Por lo que no se produjo ningún inicio de sesión exitoso.
-4. Además observé el uso de puertos altos y aleatorios por lo que deduje que se trataría de un escáner automático. 
+## 3. Investigation (step by step)
+1. While reviewing the logs I found that the Wazuh server had been the victim of an external brute-force attack, common in services with ports open to the internet.
+2. Afterwards I started investigating what else the attacker had done with `data.srcip:35.187.231.181`
+3. I verified that it had only performed brute-force attacks against the sshd service, and furthermore none of them targeted the main user `data.srcuser:ubuntu`. Therefore, no successful login occurred.
+4. I also observed the use of high and random ports, so I deduced that it was probably an automated scanner.
 
-![Estadísticas de puertos](../images/001-ssh-bruteforce-port.png)
+![Port statistics](../images/001-ssh-bruteforce-port.png)
 
-## 4. Análisis
-Puesto que se trata de ruido al tener expuesto un puerto a Internet, el acceso por ssh con el usuario principal se permite solo mediante un par de claves público-privada y no se ha intentado acceder al usuario principal, establezco la severidad en baja.
+## 4. Analysis
+Since this is noise caused by having a port exposed to the Internet, SSH access with the main user is only allowed through a public-private key pair and no attempt has been made to access the main user, I set the severity to low.
 
-## 5. Acciones de respuesta
-Recomendaría seguir monitorizando y en caso de que se repita de nuevo, bloquearía IP o cerraría el puerto 22 a Internet y permitiría acceso solo a través de la VPN interna.
+## 5. Response actions
+I would recommend continuing to monitor and, if it happens again, I would block the IP or close port 22 to the Internet and allow access only through the internal VPN.
 
-## 6. Recomendaciones de mejora (detection engineering)
-Recomendaría crear una regla Active Response para bloquear automáticamente a nivel de firewall IPs que hagan un ataque de fuerza bruta.
+## 6. Improvement recommendations (detection engineering)
+I would recommend creating an Active Response rule to automatically block IPs that carry out a brute-force attack at the firewall level.
 
-## 7. Lecciones aprendidas
-He aprendido que hoy en día tener un puerto abierto a Internet es una gran superficie de ataque puesto que hay bots automáticos que intentarán realizarte ataques de fuerza bruta a todas horas.
+## 7. Lessons learned
+I have learned that nowadays having a port open to the Internet represents a large attack surface since there are automated bots that will try to perform brute-force attacks against you at all hours.

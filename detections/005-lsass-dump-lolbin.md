@@ -1,24 +1,24 @@
-# Incidente 005: Powershell process spawned powershell instance
+# Incident 005: Powershell process spawned powershell instance
 
-## Resumen
-- **Fecha/hora:** 2026-09-14 19:21 (UTC+2)
-- **Regla(s) que saltó:** Powershell process spawned powershell instance (92027)
-- **Técnica MITRE ATT&CK:** T1059.001 - PowerShell, T1003.001 - OS Credential Dumping: LSASS Memory 
-- **Endpoint afectado:** WIN10-LAB
-- **Severidad:** Crítica
-- **Veredicto:** Verdadero positivo
+## Summary
+- **Date/time:** 2026-09-14 19:21 (UTC+2)
+- **Triggered rule(s):** Powershell process spawned powershell instance (92027)
+- **MITRE ATT&CK technique:** T1059.001 - PowerShell, T1003.001 - OS Credential Dumping: LSASS Memory
+- **Affected endpoint:** WIN10-LAB
+- **Severity:** Critical
+- **Verdict:** True positive
 
-## 1. Ejecución del ataque
-Se lanzó un ataque para simular un dump del proceso LSASS utilizando rdrleakdiag.exe
+## 1. Attack execution
+An attack was launched to simulate a dump of the LSASS process using rdrleakdiag.exe
 ```powershell
 Invoke-AtomicTest T1003.001 -TestNumber 13
 ```
 
-## 2. Evidencia recolectada
-- Captura del evento en Wazuh 
+## 2. Evidence collected
+- Screenshot of the event in Wazuh
 ![alt text](../images/005-lsass-dump-lolbin-wazuh.png)
-- Usuario/Proceso: vboxuser → powershell.exe
-- Línea de comando completa: 
+- User/Process: vboxuser → powershell.exe
+- Full command line:
 ```
 "powershell.exe" & {if (Test-Path -Path \""$env:SystemRoot\System32\rdrleakdiag.exe\"") {
       $binary_path = \""$env:SystemRoot\System32\rdrleakdiag.exe\""
@@ -35,22 +35,22 @@ write-host $binary_path /p $lsass_pid /o $env:TEMP\t1003.001-13-rdrleakdiag /ful
 Write-Host \""Minidump file, minidump_$lsass_pid.dmp can be found inside $env:TEMP\t1003.001-13-rdrleakdiag directory.\"
 ```
 
-## 3. Investigación (paso a paso)
-1. Se observó una evento sysmon 1, que resultó ser la ejecución de un comando powershell como administrador `data.win.eventdata.integrityLevel:High` y `data.win.system.eventID:1`
-2. El comando resultó ser un script para dumpear el proceso LSASS.exe utilizando el binario rdrleakdiag.exe
-3. La cadena de proceso fue powershell.exe -> powershell.exe
-4. No hubo conexiones de red, sysmon event 3 ausente `data.win.system.eventID:3`, sin persistencia (sin 4720/7045) y sin 4624 que indique acceso remoto previo, por lo que se trata de un ataque contenido en un solo host.
+## 3. Investigation (step by step)
+1. A Sysmon event 1 was observed, which turned out to be the execution of a PowerShell command as administrator `data.win.eventdata.integrityLevel:High` and `data.win.system.eventID:1`
+2. The command turned out to be a script for dumping the LSASS.exe process using the rdrleakdiag.exe binary
+3. The process chain was powershell.exe -> powershell.exe
+4. There were no network connections, Sysmon event 3 was absent `data.win.system.eventID:3`, with no persistence (no 4720/7045) and no 4624 indicating prior remote access, so this is an attack contained to a single host.
 
-## 4. Análisis
-Mediante el uso de un binario como `rdrleakdiag.exe` el atacante ha procedido al dump del proceso LSASS.exe siendo un grave riesgo para la seguridad del sistema.
+## 4. Analysis
+By using a binary such as `rdrleakdiag.exe`, the attacker proceeded to dump the LSASS.exe process, representing a serious risk to the security of the system.
 
-## 5. Acciones de respuesta
-- Escalada a N2
-- Aislado del host de red
-- Solicitud de un análisis forense a la máquina
+## 5. Response actions
+- Escalation to L2
+- Isolation of the host from the network
+- Request for a forensic analysis of the machine
 
-## 6. Recomendaciones de mejora (detection engineering)
-Crearía una regla para detectar ejecuciones de powershell como administrador y catalogarlas como nivel 15 (máximo) puesto que en la mayoría de casos suponen un grave riesgo, además vuelve a entrar en juego el principio _Least privilege_ para reducir las superficies de ataque. Y activaría Credential Guard para virtualizar lsass e impedir dumps.
+## 6. Improvement recommendations (detection engineering)
+I would create a rule to detect PowerShell executions as administrator and classify them as level 15 (maximum) since in most cases they represent a serious risk, and the _Least privilege_ principle comes into play again to reduce the attack surfaces. And I would enable Credential Guard to virtualize LSASS and prevent dumps.
 
-## 7. Lecciones aprendidas
-Aprendí lo sencillo que es para un atacante con permisos de administrador realizar el dump de un proceso tan crítico como es LSASS.
+## 7. Lessons learned
+I learned how easy it is for an attacker with administrator permissions to dump a process as critical as LSASS.

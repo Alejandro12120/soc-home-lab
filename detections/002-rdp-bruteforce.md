@@ -1,26 +1,26 @@
-# Incidente 002: Multiple Windows Logon Failures
+# Incident 002: Multiple Windows Logon Failures
 
-## Resumen
-- **Fecha/hora:** 2026-09-13 12:40 (UTC+2)
-- **Regla(s) que saltó:** Multiple Windows Logon Failures (60204)
-- **Técnica MITRE ATT&CK:** T1110 - Brute Force
-- **Endpoint afectado:** WIN10-LAB
-- **Severidad:** Media
-- **Veredicto:** Verdadero positivo
+## Summary
+- **Date/time:** 2026-09-13 12:40 (UTC+2)
+- **Triggered rule(s):** Multiple Windows Logon Failures (60204)
+- **MITRE ATT&CK technique:** T1110 - Brute Force
+- **Affected endpoint:** WIN10-LAB
+- **Severity:** Medium
+- **Verdict:** True positive
 
-## 1. Ejecución del ataque
-Se atacó al endpoint de Windows 10 desde el host de la VM (se utilizó port forwarding, por eso el 127.0.0.1) mediante un ataque de fuerza bruta con diccionario:
+## 1. Attack execution
+The Windows 10 endpoint was attacked from the VM host (port forwarding was used, which is why it shows 127.0.0.1) through a dictionary-based brute-force attack:
 ```bash
 hydra -l vboxuser -P rockyou.txt rdp://127.0.0.1 -s 13389 -t 4 -V
 ```
 
 
-## 2. Evidencia recolectada
-- Captura del evento en Wazuh
+## 2. Evidence collected
+- Screenshot of the event in Wazuh
 ![alt text](../images/002-rdp-bruteforce-wazuh.png)
-- IP origen: [10.0.2.2]
-- Usuario/Proceso: vboxuser -> RDP
-- Línea de comando completa: 
+- Source IP: [10.0.2.2]
+- User/Process: vboxuser -> RDP
+- Full command line:
 ```
 An account failed to log on.
 
@@ -59,29 +59,29 @@ Detailed Authentication Information:
 	Package Name (NTLM only):	-
 	Key Length:		0
 ```
-- Eventos correlacionados: `rule.id:60122` y `rule.id:60204`
+- Correlated events: `rule.id:60122` and `rule.id:60204`
 
-## 3. Investigación (paso a paso)
-1. Se detectó un ataque de fuerza bruta al usuario principal de la máquina virtual al servicio RDP.
-2. Comprobé que el atacante no había intentado atacar ningún otro servicio mirando `data.win.eventdata.ipAddress:10.0.2.2`
-3. El valor `data.win.eventdata.subStatus:0xc000006a` implica que el usuario fue correcto pero la contraseña no.
-4. No se produjo ningún acceso exitoso `data.win.system.eventID:4624`
+## 3. Investigation (step by step)
+1. A brute-force attack against the virtual machine's main user through the RDP service was detected.
+2. I verified that the attacker had not tried to attack any other service by looking at `data.win.eventdata.ipAddress:10.0.2.2`
+3. The value `data.win.eventdata.subStatus:0xc000006a` means that the username was correct but the password was not.
+4. No successful access occurred `data.win.system.eventID:4624`
 
-## 4. Análisis
-Puesto que es un ataque específico hacia nuestro sistema al usar un usuario válido, otorgo una severidad media, siendo necesario realizar una respuesta para mitigar un posible acceso futuro. 
+## 4. Analysis
+Since this is a specific attack against our system using a valid username, I assign it a medium severity, making it necessary to respond in order to mitigate possible future access.
 
-Tras aplicar las acciones de respuesta permancería monitorizando por si se repitiesen futuros ataques.
+After applying the response actions, I would continue monitoring in case further attacks occurred.
 
-## 5. Acciones de respuesta
-- Escalar a N2 al tratarse de un ataque dirigido.
-- Establecer políticas de contraseñas robustas.
-- Eliminar el acceso a RDP a través de Internet y obligar al uso de una VPN.
-- Recomendado establecer una política de _lockout_ a partir de una serie de intentos fallidos. Sin embargo el atacante podría realizar un ataque de denegación de servicio, impidiendo al usuario legítimo acceder.
-- Cambiar el nombre de usuario.
-- Obligar al uso de MFA para el acceso a RDP.
+## 5. Response actions
+- Escalate to L2 since this is a targeted attack.
+- Establish robust password policies.
+- Remove RDP access through the Internet and require the use of a VPN.
+- It is recommended to establish a _lockout_ policy after a series of failed attempts. However, the attacker could carry out a denial-of-service attack, preventing the legitimate user from accessing the system.
+- Change the username.
+- Require the use of MFA for RDP access.
 
-## 6. Recomendaciones de mejora (detection engineering)
-Crearía una Active Response para bloquear automáticamente IPs que intenten hacer fuerza bruta, pese a eliminar el acceso a RDP a través de Internet.
+## 6. Improvement recommendations (detection engineering)
+I would create an Active Response to automatically block IPs that attempt brute-force attacks, despite removing RDP access through the Internet.
 
-## 7. Lecciones aprendidas
-Aprendí que es importante establecer políticas Zero Trust donde el usuario debe autenticarse previamente utilizando una conexión segura como puede ser una VPN para posteriormente acceder a un servicio como puede ser RDP. También el uso de MFA mitiga drásticamente la probabilidades de éxito de un ataque de fuerza bruta.
+## 7. Lessons learned
+I learned that it is important to establish Zero Trust policies where the user must authenticate beforehand using a secure connection such as a VPN in order to subsequently access a service such as RDP. The use of MFA also drastically reduces the probability of success of a brute-force attack.

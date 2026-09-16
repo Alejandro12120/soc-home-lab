@@ -1,24 +1,24 @@
-# Incidente 002: User account enabled or created + Administrators Group Changed
+# Incident 002: User account enabled or created + Administrators Group Changed
 
-## Resumen
-- **Fecha/hora:** 2026-09-13 14:47 (UTC+2)
-- **Regla(s) que saltó:** User account enabled or created (60109)
-- **Técnica MITRE ATT&CK:** T1098 - Account Manipulation, T1484 - Domain Policy Modification
-- **Endpoint afectado:** WIN10-LAB
-- **Severidad:** Crítica
-- **Veredicto:** Verdadero positivo
+## Summary
+- **Date/time:** 2026-09-13 14:47 (UTC+2)
+- **Triggered rule(s):** User account enabled or created (60109)
+- **MITRE ATT&CK technique:** T1098 - Account Manipulation, T1484 - Domain Policy Modification
+- **Affected endpoint:** WIN10-LAB
+- **Severity:** Critical
+- **Verdict:** True positive
 
-## 1. Ejecución del ataque
-Se creó una cuenta de usuario y posteriormente se escaló para que fuese administrador.
+## 1. Attack execution
+A user account was created and later escalated so that it became an administrator.
 ```powershell
 net user hacker P@ssw0rd123! /add
 net localgroup Administrators hacker /add 
 ```
 
-## 2. Evidencia recolectada
-- Captura del evento en Wazuh
+## 2. Evidence collected
+- Screenshot of the event in Wazuh
 ![Wazuh dashboard](../images/003-account-creation-wazuh.png)
-- Registro de creación de usuario: 
+- User creation log:
 ```
 A user account was created.
 
@@ -60,7 +60,7 @@ Additional Information:
 	Privileges		-
 
 ```
-- Registro de escalada de privilegio:
+- Privilege escalation log:
 ```
 "A member was added to a security-enabled local group.
 
@@ -83,14 +83,14 @@ Additional Information:
 	Privileges:		-"
 ```
 
-- Eventos correlacionados: `data.win.system.eventID:4720`, `data.win.system.eventID:4732`, `rule.id:60109`, `rule.id:60154`
+- Correlated events: `data.win.system.eventID:4720`, `data.win.system.eventID:4732`, `rule.id:60109`, `rule.id:60154`
 
-## 3. Investigación (paso a paso)
-1. Observé que un nuevo usuario llamado `hacker` fue creado y añadido al grupo de usuarios.
-2. Tras unos minutos, un nuevo registro apareció en el cual el usuario había escalado privilegios y ahora tenía permisos de administrador.
-3. No se observaron nuevos usuarios creados.
-4. No se observa un inicio de sesión remoto, posible malware?
-5. Se observó que la escalada de privilegio se produzco mediante powershell a las 14:50 (UTC+2) (`data.win.system.eventID:1`):
+## 3. Investigation (step by step)
+1. I observed that a new user called `hacker` was created and added to the users group.
+2. After a few minutes, a new log appeared in which the user had escalated privileges and now had administrator permissions.
+3. No other newly created users were observed.
+4. No remote login is observed, possible malware?
+5. It was observed that the privilege escalation occurred through PowerShell at 14:50 (UTC+2) (`data.win.system.eventID:1`):
 ```
 Process Create:
 RuleName: technique_id=T1018,technique_name=Remote System Discovery
@@ -118,21 +118,20 @@ ParentCommandLine: "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
 ParentUser: WIN10-LAB\vboxuser"
 ```
 
-5. No se crearon servicios nuevos `data.win.system.eventID:7045`.
-6. Se confirma que no coincide con ninguna ventana de mantenimiento, ni ningún despliegue de software nuevo.
+5. No new services were created `data.win.system.eventID:7045`.
+6. It is confirmed that this does not coincide with any maintenance window or any new software deployment.
 
-## 4. Análisis
-Debido al potencial peligro que supone estas acciones ya que un atacante ha sido capaz de escalar privilegios, clasifico la situación como crítica, escalo y tomo acciones inmediatamente. 
+## 4. Analysis
+Due to the potential danger posed by these actions, since an attacker has been able to escalate privileges, I classify the situation as critical, escalate it and take action immediately.
 
-## 5. Acciones de respuesta
-- Escalada a N2 como urgente.
-- Cuenta creada deshabilitada
-- Aislamiento de host
-- Se requiere investigación forense y búsqueda de persistencia
+## 5. Response actions
+- Urgent escalation to L2.
+- Created account disabled
+- Host isolation
+- Forensic investigation and a search for persistence are required
 
-## 6. Recomendaciones de mejora (detection engineering)
-Como la escalada se produjo mediante powershell puesto que la cuenta vboxuser tiene permisos de administrador, recomiendo que la cuenta de uso diaria no tenga permisos de administrador (_Principle of least privilege_)
+## 6. Improvement recommendations (detection engineering)
+Since the escalation occurred through PowerShell because the vboxuser account has administrator permissions, I recommend that the account used on a daily basis does not have administrator permissions (_Principle of least privilege_)
 
-## 7. Lecciones aprendidas
-Aprendí el riesgo que supone una escalada de privilegios, lo importante que es llegar a tiempo antes de que el atacante realice movimientos laterales y así poder contener la amenaza. He aprendido que es importante no apagar el host cuando ocurre esto puesto que se destruiría información forense irrecuperable. También es importante analizar como entró el atacante y cómo realizó la escalada para establecer las medidas de seguridad adecuadas para que no vuelva a pasar. Y que es importante aplicar el principio de menor privilegio para así reducir las superficies de ataque.
-
+## 7. Lessons learned
+I learned about the risk posed by a privilege escalation, how important it is to act in time before the attacker performs lateral movement and thus be able to contain the threat. I have learned that it is important not to shut down the host when this happens since irrecoverable forensic information would be destroyed. It is also important to analyze how the attacker got in and how they performed the escalation in order to establish the appropriate security measures so that it does not happen again. And that it is important to apply the principle of least privilege in order to reduce the attack surfaces.

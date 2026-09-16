@@ -1,25 +1,25 @@
-# Incidente 004: Suspicious Windows cmd shell execution
+# Incident 004: Suspicious Windows cmd shell execution
 
-## Resumen
-- **Fecha/hora:** 2026-09-13 17:47 (UTC+2)
-- **Regla(s) que saltó:** Suspicious Windows cmd shell execution (92032)
-- **Técnica MITRE ATT&CK:** T1059.003 - Windows Command Shell
-- **Endpoint afectado:** WIN10-LAB
-- **Severidad:** Alta
-- **Veredicto:** Verdadero positivo
+## Summary
+- **Date/time:** 2026-09-13 17:47 (UTC+2)
+- **Triggered rule(s):** Suspicious Windows cmd shell execution (92032)
+- **MITRE ATT&CK technique:** T1059.003 - Windows Command Shell
+- **Affected endpoint:** WIN10-LAB
+- **Severity:** High
+- **Verdict:** True positive
 
-## 1. Ejecución del ataque
-Se ejecutó un test de Atomic Red Team (PowerShell Command Execution)
+## 1. Attack execution
+An Atomic Red Team test (PowerShell Command Execution) was executed
 ```powershell
 Invoke-AtomicTest T1059.001 -TestNumber 17
 ```
 
 
-## 2. Evidencia recolectada
-- Captura del evento en Wazuh
+## 2. Evidence collected
+- Screenshot of the event in Wazuh
 ![Wazuh](../images/004-obfuscated-powershell-wazuh.png)
-- Usuario/Proceso: vboxuser → powershell.exe
-- Línea de comando completa: 
+- User/Process: vboxuser → powershell.exe
+- Full command line:
 ```
 "Process Create:
 RuleName: technique_id=T1059.001,technique_name=PowerShell
@@ -47,27 +47,27 @@ ParentCommandLine: "cmd.exe" /c powershell.exe -e  JgAgACgAZwBjAG0AIAAoACcAaQBlA
 ParentUser: WIN10-LAB\vboxuser"
 ```
 
-## 3. Investigación (paso a paso)
-1. Detección de un script de PowerShell obfuscado en base64 ejecutado desde carpeta Temp
-2. Cadena de procesos cmd -> powershell y con privilegios elevados
-3. Se observa que durante la ejecución del script, el mismo proceso (Guid: `{e65a69a6-c5a7-6aa6-ce01-000000000700}`) creó el archivo temporal _PSScriptPolicyTest.ps1, artefacto benigno de la comprobación interna de políticas de PowerShell (AppLocker/WDAC). Se correlacionó por ProcessGuid descartando un segundo vector de ataque.
-4. No se ha podido observar ningún comportamiento anómalo extra.
-5. Se ha podido desobfuscar manualmente el script.
+## 3. Investigation (step by step)
+1. Detection of a base64-obfuscated PowerShell script executed from the Temp folder
+2. cmd -> PowerShell process chain with elevated privileges
+3. It is observed that during the execution of the script, the same process (Guid: `{e65a69a6-c5a7-6aa6-ce01-000000000700}`) created the temporary file _PSScriptPolicyTest.ps1, a benign artifact from PowerShell's internal policy check (AppLocker/WDAC). It was correlated by ProcessGuid, ruling out a second attack vector.
+4. No additional anomalous behavior could be observed.
+5. The script was successfully deobfuscated manually.
 
-## 4. Análisis
-Debido a la multitud de indicadores sospechosos (script en base64, carpeta temporal y privilegios elevados) clasifico esta alerta con una severidad alta debido al riesgo inminente que supone.
+## 4. Analysis
+Due to the large number of suspicious indicators (base64 script, temporary folder and elevated privileges), I classify this alert as high severity because of the imminent risk it poses.
 
-## 5. Acciones de respuesta
-- Escalada a N2
-- Aislado de máquina
-- Realizar análisis forense al script 
+## 5. Response actions
+- Escalation to L2
+- Machine isolation
+- Perform forensic analysis of the script
 
-## 6. Recomendaciones de mejora (detection engineering)
-Se recomienda deshabilitar los permisos de administrador a las cuentas no esenciales. Aplicando el principio _Least privilege_
+## 6. Improvement recommendations (detection engineering)
+It is recommended to remove administrator permissions from non-essential accounts. Applying the _Least privilege_ principle
 
-## 7. Lecciones aprendidas
-He aprendido lo importante que es el principio _Least privilege_ puesto que un atacante podría fácilmente ejecutar un script con permisos de administrador sin que el usuario sea consciente de ello.
+## 7. Lessons learned
+I have learned how important the _Least privilege_ principle is since an attacker could easily execute a script with administrator permissions without the user being aware of it.
 
-## 8. Referencias
+## 8. References
 - MITRE ATT&CK: https://attack.mitre.org/techniques/TXXXX/
-- [Documentación/artículos consultados]
+- [Documentation/articles consulted]

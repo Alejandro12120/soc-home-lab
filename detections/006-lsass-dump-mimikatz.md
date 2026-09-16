@@ -1,24 +1,24 @@
-# Incidente 006: Lsass process was accessed by powershell with read permissions, possible credential dump
+# Incident 006: Lsass process was accessed by powershell with read permissions, possible credential dump
 
-## Resumen
-- **Fecha/hora:** 2026-09-14 19:45 (UTC+2)
-- **Regla(s) que saltó:** Lsass process was accessed by powershell with read permissions, possible credential dump (92900) y Powershell script may be executing suspicious code with CreateThread API (91810)
-- **Técnica MITRE ATT&CK:** T1003.001 - LSASS Memory, T1106 - Native API
-- **Endpoint afectado:** WIN10-LAB
-- **Severidad:** Crítica
-- **Veredicto:** Verdadero positivo
+## Summary
+- **Date/time:** 2026-09-14 19:45 (UTC+2)
+- **Triggered rule(s):** Lsass process was accessed by powershell with read permissions, possible credential dump (92900) and Powershell script may be executing suspicious code with CreateThread API (91810)
+- **MITRE ATT&CK technique:** T1003.001 - LSASS Memory, T1106 - Native API
+- **Affected endpoint:** WIN10-LAB
+- **Severity:** Critical
+- **Verdict:** True positive
 
-## 1. Ejecución del ataque
-Se realizó un ataque de ejecución de Mimikatz para el dumpeo de LSASS y obtención de credenciales.
+## 1. Attack execution
+A Mimikatz execution attack was performed to dump LSASS and obtain credentials.
 ```
 Invoke-AtomicTest T1003.001 -TestNumber 10
 ```
 
-## 2. Evidencia recolectada
-- Captura del evento en Wazuh
+## 2. Evidence collected
+- Screenshot of the event in Wazuh
 ![Wazuh](../images/006-lsass-dump-mimikatz-wazuh.png)
-- Usuario/Proceso: vboxuser -> powershell.exe
-- Línea de comando completa: 
+- User/Process: vboxuser -> powershell.exe
+- Full command line:
 ```
 "Process accessed:
 RuleName: technique_id=T1003,technique_name=Credential Dumping
@@ -35,28 +35,28 @@ CallTrace: C:\Windows\SYSTEM32\ntdll.dll+9d234|C:\Windows\System32\KERNELBASE.dl
 SourceUser: WIN10-LAB\vboxuser
 TargetUser: NT AUTHORITY\SYSTEM"
 ```
-- Eventos correlacionados: un script de Powershell ejecutando código sospechoso con `data.win.system.eventID:4104` y `rule.id:91810`
+- Correlated events: a PowerShell script executing suspicious code with `data.win.system.eventID:4104` and `rule.id:91810`
 
-## 3. Investigación (paso a paso)
-1. Observé que un script de powershell podía estar ejecutando código malicioso con `data.win.system.eventID:4104` y `rule.id:91810`
-2. Posteriormente numerosos scriptblocks con código en base64, por ejemplo: ScriptBlock ID: 607c9878-bf40-49dd-8c2d-0716d3b025cd
-3. Y por último saltó una alerta avisando de que un proceso, en concreto powershell había accedido a LSASS `data.win.system.eventID:10` indicando un dumpeo de credenciales con muy alta probabilidad.
-4. No hay indicios de inicio de sesión posteriores (que pudiesen indicar el uso de las credenciales robadas)
-5. No hubo conexiones de red, sysmon event 3 ausente `data.win.system.eventID:3`, sin persistencia (sin 4720/7045) y sin 4624 que indique acceso remoto previo, por lo que se trata de un ataque contenido en un solo host.
+## 3. Investigation (step by step)
+1. I observed that a PowerShell script could be executing malicious code with `data.win.system.eventID:4104` and `rule.id:91810`
+2. Afterwards, numerous script blocks with base64 code, for example: ScriptBlock ID: 607c9878-bf40-49dd-8c2d-0716d3b025cd
+3. And finally an alert was triggered warning that a process, specifically PowerShell, had accessed LSASS `data.win.system.eventID:10`, indicating a credential dump with a very high probability.
+4. There is no evidence of subsequent logins (which could indicate the use of the stolen credentials)
+5. There were no network connections, Sysmon event 3 was absent `data.win.system.eventID:3`, with no persistence (no 4720/7045) and no 4624 indicating prior remote access, so this is an attack contained to a single host.
 
-## 4. Análisis
-El atacante muy posiblemente realizó un dumpeo de credenciales al acceder a la memoria del proceso lsass.exe, utilizando scripts obfuscados en base64.
+## 4. Analysis
+The attacker very likely performed a credential dump by accessing the memory of the lsass.exe process, using scripts obfuscated in base64.
 
-## 5. Acciones de respuesta
-- Escalada a N2
-- Aislado host de red
-- Análisis forense al dispositivo
-- Cuenta vboxuser deshabilitada
+## 5. Response actions
+- Escalation to L2
+- Isolation of the host from the network
+- Forensic analysis of the device
+- vboxuser account disabled
 
-## 6. Recomendaciones de mejora (detection engineering)
-- Activar LSA Protection para impedir que procesos abran lsass
-- Activar Credential Guard para virtualizar lsass
-- Implementación _Least Privilege_
+## 6. Improvement recommendations (detection engineering)
+- Enable LSA Protection to prevent processes from opening LSASS
+- Enable Credential Guard to virtualize LSASS
+- Implementation of _Least Privilege_
 
-## 7. Lecciones aprendidas
-Aprendó lo que era LSA Protection y Credential Guard dos funciones esenciales a la hora de impedir el dumpeo de credenciales a través del proceso lsass.
+## 7. Lessons learned
+I learned what LSA Protection and Credential Guard are, two essential features when it comes to preventing credential dumping through the LSASS process.

@@ -1,15 +1,15 @@
-# Incidente 007: Sysmon Event 8: CreateRemoteThread
+# Incident 007: Sysmon Event 8: CreateRemoteThread
 
-## Resumen
-- **Fecha/hora:** 2026-09-16 19:16 (UTC+2)
-- **Regla(s) que saltó:** Custom rule: Sysmon Event 8: CreateRemoteThread from C:\\AtomicRedTeam\\atomics\\T1055\\bin\\x64\\CreateRemoteThread.exe to C:\\Windows\\System32\\WerFault.exe (100109)
-- **Técnica MITRE ATT&CK:** T1055 - Process Injection
-- **Endpoint afectado:** WIN10-LAB
-- **Severidad:** Alta
-- **Veredicto:** Verdadero positivo
+## Summary
+- **Date/time:** 2026-09-16 19:16 (UTC+2)
+- **Triggered rule(s):** Custom rule: Sysmon Event 8: CreateRemoteThread from C:\\AtomicRedTeam\\atomics\\T1055\\bin\\x64\\CreateRemoteThread.exe to C:\\Windows\\System32\\WerFault.exe (100109)
+- **MITRE ATT&CK technique:** T1055 - Process Injection
+- **Affected endpoint:** WIN10-LAB
+- **Severity:** High
+- **Verdict:** True positive
 
-## 1. Ejecución del ataque
-Se añadió una regla personalizada a Wazuh para detectar los sysmon event 8 del endpoint de Windows 10, para así poder detectar `CreateRemoteThread`:
+## 1. Attack execution
+A custom rule was added to Wazuh to detect Sysmon event 8 from the Windows 10 endpoint, in order to detect `CreateRemoteThread`:
 ```xml
 <group name="windows,sysmon,">
   <rule id="100109" level="10">
@@ -22,22 +22,22 @@ Se añadió una regla personalizada a Wazuh para detectar los sysmon event 8 del
 </group>
 ```
 
-Y posteriormente se realizó un ataque de _Process Injection_ utilizando _CreateRemoteThread_ WinAPI
+And afterwards, a _Process Injection_ attack was performed using the _CreateRemoteThread_ WinAPI
 ```powershell
 Invoke-AtomicTest T1055 -TestNumbers 9
 ```
 
 
-## 2. Evidencia recolectada
-- Captura del evento en Wazuh
+## 2. Evidence collected
+- Screenshot of the event in Wazuh
 ![wazuh](../images/007-process-injection-wazuh.png)
-- Usuario/Proceso: vboxuser → CreateRemoteThread.exe
-- Línea de comando completa: `"powershell.exe" & {$process = Start-Process C:\Windows\System32\werfault.exe -passthru
+- User/Process: vboxuser → CreateRemoteThread.exe
+- Full command line: `"powershell.exe" & {$process = Start-Process C:\Windows\System32\werfault.exe -passthru
 C:\AtomicRedTeam\atomics\T1055\bin\x64\CreateRemoteThread.exe -pid $process.Id -debug}`
-- Eventos correlacionados: Ejecución de `C:\AtomicRedTeam\atomics\T1055\bin\x64\CreateRemoteThread.exe` desde powershell `rule.id:92027` y `data.win.system.eventID:1` y posterior inyección de proceso.
+- Correlated events: Execution of `C:\AtomicRedTeam\atomics\T1055\bin\x64\CreateRemoteThread.exe` from PowerShell `rule.id:92027` and `data.win.system.eventID:1` and subsequent process injection.
 
-## 3. Investigación (paso a paso)
-1. Detecté primero la ejecución de un binario como administrador (`IntegrityLevel: High`) desde el usuario `vboxuser` desde powershell `C:\AtomicRedTeam\atomics\T1055\bin\x64\CreateRemoteThread.exe` con objetivo `C:\Windows\System32\werfault.exe` (`rule.id:92027` y `data.win.system.eventID:1`)
+## 3. Investigation (step by step)
+1. I first detected the execution of a binary as administrator (`IntegrityLevel: High`) by the user `vboxuser` from PowerShell `C:\AtomicRedTeam\atomics\T1055\bin\x64\CreateRemoteThread.exe` targeting `C:\Windows\System32\werfault.exe` (`rule.id:92027` and `data.win.system.eventID:1`)
 ```
 "Process Create:
 RuleName: technique_id=T1059.001,technique_name=PowerShell
@@ -65,7 +65,7 @@ ParentImage: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
 ParentCommandLine: "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" 
 ParentUser: WIN10-LAB\vboxuser"
 ```
-2. Posteriormente detecté un sysmon event 8 detectando la creación de un CreateRemoteThread indicando una posible inyección de proceso hacia `C:\Windows\System32\WerFault.exe`
+2. Afterwards, I detected a Sysmon event 8 detecting the creation of a CreateRemoteThread, indicating a possible process injection into `C:\Windows\System32\WerFault.exe`
 ```
 "CreateRemoteThread detected:
 RuleName: technique_id=T1055,technique_name=Process Injection
@@ -83,23 +83,23 @@ StartFunction: -
 SourceUser: WIN10-LAB\vboxuser
 TargetUser: WIN10-LAB\vboxuser"
 ```
-3. No se observaron accesos en remoto `data.win.system.eventID:3` ni nuevos archivos creados `data.win.system.eventID:11`
-4. No se produjo ningún acceso a un proceso `data.win.system.eventID:10`
-5. Tampoco se observó una escalada de privilegios `data.win.system.eventID:4732` ni persistencia `data.win.system.eventID:4698`
-6. No se ha identificado software autorizado que explique esta actividad.
+3. No remote access `data.win.system.eventID:3` or newly created files `data.win.system.eventID:11` were observed
+4. No process access occurred `data.win.system.eventID:10`
+5. No privilege escalation `data.win.system.eventID:4732` or persistence `data.win.system.eventID:4698` was observed either
+6. No authorized software that could explain this activity has been identified.
 
-## 4. Análisis
-Posiblemente implique un _process injection_ hacia `WerFault.exe` puesto que se ha ejecutado desde powershell con permisos de administrador y CreateRemoteThread proviene de una ruta relacionada con tests de Atomic, escalo a N2 para pedir ayuda y seguir investigando.
+## 4. Analysis
+This possibly involves _process injection_ into `WerFault.exe` since it was executed from PowerShell with administrator permissions and CreateRemoteThread comes from a path related to Atomic tests, I escalate to L2 to ask for help and continue investigating.
 
-## 5. Acciones de respuesta
-- Escalada a N2
-- Aislar host de red
-- Solicito análisis forense de la memoria
+## 5. Response actions
+- Escalation to L2
+- Isolate the host from the network
+- I request forensic analysis of the memory
 
-## 6. Recomendaciones de mejora (detection engineering)
-- Crear una alerta específica para sysmon event 8 puesto que wazuh de normal no genera una alerta visible, especialmente una alerta que priorice procesos origen desconocidos y destinos sensibles.
-- Crear una _allowlist_ precisa para identificar las herramientas legítimas que pueden utilizar esta función.
+## 6. Improvement recommendations (detection engineering)
+- Create a specific alert for Sysmon event 8 since Wazuh does not normally generate a visible alert, especially an alert that prioritizes unknown source processes and sensitive targets.
+- Create a precise _allowlist_ to identify legitimate tools that can use this function.
 
 
-## 7. Lecciones aprendidas
-He aprendido lo que es CreateRemoteThread y para lo que se utiliza, también he aprendido a crear nuevas reglas para Wazuh.
+## 7. Lessons learned
+I have learned what CreateRemoteThread is and what it is used for, I have also learned how to create new rules for Wazuh.
